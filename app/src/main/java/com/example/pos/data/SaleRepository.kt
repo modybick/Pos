@@ -3,6 +3,7 @@ package com.example.pos.data
 import com.example.pos.database.Sale
 import com.example.pos.database.SaleDetail
 import com.example.pos.database.SaleDao
+import com.example.pos.database.SaleWithDetails
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
@@ -12,6 +13,7 @@ interface SaleRepository {
     suspend fun getSaleDetails(saleId: Long): List<SaleDetail>
     suspend fun cancelSale(saleId: Long)
     suspend fun uncancelSale(saleId: Long)
+    suspend fun getSalesWithDetails(): List<SaleWithDetails>
 }
 
 // 設計図の実装
@@ -25,5 +27,8 @@ class SaleRepositoryImpl @Inject constructor(
     }
     override suspend fun uncancelSale(saleId: Long) {
         saleDao.uncancelSaleById(saleId)
+    }
+    override suspend fun getSalesWithDetails(): List<SaleWithDetails> {
+        return saleDao.getSalesWithDetails()
     }
 }

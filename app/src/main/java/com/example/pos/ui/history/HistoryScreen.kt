@@ -14,6 +14,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,8 +30,30 @@ fun HistoryScreen(
     var showCancelConfirmDialog by remember { mutableStateOf(false) }
     var showUncancelConfirmDialog by remember { mutableStateOf(false) }
 
+    // 👇 ファイル作成インテントを準備
+    val csvFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv"),
+        onResult = { uri ->
+            // ユーザーが保存場所を選んだら、uriが返ってくる
+            uri?.let {
+                historyViewModel.exportSalesToCsv(it)
+            }
+        }
+    )
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("売上履歴") }) }
+        topBar = { TopAppBar(
+            title = { Text("売上履歴") },
+            actions = {
+                IconButton(onClick = {
+                    val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.JAPAN)
+                    val fileName = "sales_history_${dateFormat.format(Date())}.csv"
+                    csvFileLauncher.launch(fileName)
+                }) {
+                    Icon(Icons.Default.Share, contentDescription = "エクスポート")
+                }
+            }
+        ) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -50,11 +76,11 @@ fun HistoryScreen(
                             sale = sale,
                             onClick = { historyViewModel.onSaleSelected(sale) }
                         )
-                        Divider()
+                        HorizontalDivider()
                     }
                 }
                 // 👇 合計金額表示をリストの下に追加
-                Divider()
+                HorizontalDivider()
                 TotalSalesRow(totalAmount = uiState.totalSalesAmount)
             }
         }
@@ -166,7 +192,7 @@ private fun SaleDetailSheetContent(
                 style = MaterialTheme.typography.bodySmall
             )
         }
-        Divider()
+        HorizontalDivider()
 
         // --- 商品リスト ---
         LazyColumn(modifier = Modifier.weight(1f, fill = false)) {

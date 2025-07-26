@@ -74,4 +74,9 @@ interface SaleDao {
 
     @Query("UPDATE sales SET isCancelled = 0 WHERE id = :saleId")
     suspend fun uncancelSaleById(saleId: Long)
+
+    // 全ての会計・明細を取得する
+    @Transaction
+    @Query("SELECT * FROM sales")
+    suspend fun getSalesWithDetails(): List<SaleWithDetails>
 }

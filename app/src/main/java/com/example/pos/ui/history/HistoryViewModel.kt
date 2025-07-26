@@ -1,5 +1,6 @@
 package com.example.pos.ui.history
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pos.data.SaleRepository
@@ -9,6 +10,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.icu.text.SimpleDateFormat
+import android.net.Uri
+import android.widget.Toast
+import java.io.IOException
+import java.util.Locale
 
 data class HistoryUiState(
     val sales: List<Sale> = emptyList(),
@@ -20,7 +26,8 @@ data class HistoryUiState(
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
-    private val saleRepository: SaleRepository
+    private val saleRepository: SaleRepository,
+    private val application: Application
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -67,5 +74,52 @@ class HistoryViewModel @Inject constructor(
                 onDismissSaleDetails()
             }
         }
+    }
+    fun exportSalesToCsv(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                // 1. DBから全データを取得
+                val salesWithDetails = saleRepository.getSalesWithDetails()
+
+                // 2. CSV形式の文字列を作成
+                val csvContent = buildCsvContent(salesWithDetails)
+
+                // 3. ユーザーが選択した場所にファイルを書き込む
+                application.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(csvContent.toByteArray())
+                }
+
+                // 成功メッセージを表示
+                Toast.makeText(application, "CSVファイルが保存されました", Toast.LENGTH_LONG).show()
+
+            } catch (e: IOException) {
+                // エラーメッセージを表示
+                Toast.makeText(application, "エクスポートに失敗しました", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun buildCsvContent(sales: List<com.example.pos.database.SaleWithDetails>): String {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.JAPAN)
+        val stringBuilder = StringBuilder()
+        // ヘッダー行
+        stringBuilder.append("会計ID,会計日時,合計金額,取り消し,商品バーコード,商品名,販売単価,数量\n")
+
+        // データ行
+        sales.forEach { saleWithDetails ->
+            saleWithDetails.details.forEach { detail ->
+                stringBuilder.append(
+                    "${saleWithDetails.sale.id}," +
+                            "${dateFormat.format(saleWithDetails.sale.createdAt)}," +
+                            "${saleWithDetails.sale.totalAmount}," +
+                            "${saleWithDetails.sale.isCancelled}," +
+                            "${detail.productBarcode}," +
+                            "\"${detail.productName}\"," + // 商品名にカンマが含まれる可能性を考慮
+                            "${detail.price}," +
+                            "${detail.quantity}\n"
+                )
+            }
+        }
+        return stringBuilder.toString()
     }
 }

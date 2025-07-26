@@ -52,10 +52,6 @@ class SaleViewModel @Inject constructor(
         checkoutSoundId = soundPool.load(getApplication(), R.raw.checkout, 1)
     }
 
-    fun onCheckoutClicked() {
-        // TODO: 会計処理を行い、データをDBに保存する
-    }
-
     fun onQuantityChanged(barcode: String, change: Int) {
         val currentItems = _uiState.value.cartItems.toMutableList()
         val itemIndex = currentItems.indexOfFirst { it.product.barcode == barcode }
