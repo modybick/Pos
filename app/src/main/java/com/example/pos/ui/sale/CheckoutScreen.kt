@@ -12,7 +12,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +25,8 @@ fun CheckoutScreen(
 
     val tendered = tenderedAmount.toIntOrNull() ?: 0
     val change = tendered - uiState.totalAmount // お釣り
+
+    val totalItemCount = uiState.cartItems.sumOf { it.quantity } // 商品点数を計算
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("会計") }) }
@@ -58,7 +60,7 @@ fun CheckoutScreen(
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            Divider()
+            HorizontalDivider()
             // --- 商品リスト（確認用） ---
             LazyColumn(modifier = Modifier.weight(1f)) {
                 items(uiState.cartItems) { item ->
@@ -87,10 +89,10 @@ fun CheckoutScreen(
                     }
                 }
             }
-            Divider(modifier = Modifier.padding(vertical = 16.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
             // --- 金額表示 ---
-            AmountRow(label = "合計金額", amount = uiState.totalAmount)
+            AmountRow(label = "合計金額（${totalItemCount}点）", amount = uiState.totalAmount)
             Spacer(modifier = Modifier.height(8.dp))
 
             // --- 預かり金額入力 ---
@@ -100,7 +102,11 @@ fun CheckoutScreen(
                 label = { Text("預かり金額") },
                 suffix = { Text("円") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = LocalTextStyle.current.copy(
+                    fontSize = 28.sp,
+                    textAlign = TextAlign.End
+                )
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -128,10 +134,10 @@ fun CheckoutScreen(
 @Composable
 private fun AmountRow(label: String, amount: Int) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
         Text(
             "$amount 円",
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.headlineLarge,
             textAlign = TextAlign.End,
             color = MaterialTheme.colorScheme.primary
         )
