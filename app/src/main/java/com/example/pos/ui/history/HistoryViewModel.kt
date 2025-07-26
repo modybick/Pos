@@ -15,6 +15,7 @@ import android.net.Uri
 import android.widget.Toast
 import java.io.IOException
 import java.util.Locale
+import com.example.pos.data.ProductRepository
 
 data class HistoryUiState(
     val sales: List<Sale> = emptyList(),
@@ -27,6 +28,7 @@ data class HistoryUiState(
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val saleRepository: SaleRepository,
+    private val productRepository: ProductRepository,
     private val application: Application
 ) : ViewModel() {
 
@@ -78,13 +80,27 @@ class HistoryViewModel @Inject constructor(
     fun exportSalesToCsv(uri: Uri) {
         viewModelScope.launch {
             try {
-                // 1. DBから全データを取得
+                // 1. 売上と明細の全データを取得
                 val salesWithDetails = saleRepository.getSalesWithDetails()
+                if (salesWithDetails.isEmpty()) {
+                    Toast.makeText(application, "エクスポートするデータがありません", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
 
-                // 2. CSV形式の文字列を作成
-                val csvContent = buildCsvContent(salesWithDetails)
+                // 2. 明細に含まれる全商品のバーコードを重複なく取得
+                val productBarcodes = salesWithDetails
+                    .flatMap { it.details }
+                    .map { it.productBarcode }
+                    .distinct()
 
-                // 3. ユーザーが選択した場所にファイルを書き込む
+                // 3. バーコードを元に商品マスタ情報をまとめて取得し、マップに変換
+                val productsMap = productRepository.findProductsByBarcodes(productBarcodes)
+                    .associateBy { it.barcode }
+
+                // 4. CSV形式の文字列を作成
+                val csvContent = buildCsvContent(salesWithDetails, productsMap)
+
+                // 5. ファイルに書き込む
                 application.contentResolver.openOutputStream(uri)?.use { outputStream ->
                     outputStream.write(csvContent.toByteArray())
                 }
@@ -99,15 +115,19 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    private fun buildCsvContent(sales: List<com.example.pos.database.SaleWithDetails>): String {
+    private fun buildCsvContent(
+        sales: List<com.example.pos.database.SaleWithDetails>,
+        productsMap: Map<String, com.example.pos.database.Product>
+    ): String {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.JAPAN)
         val stringBuilder = StringBuilder()
         // ヘッダー行
-        stringBuilder.append("会計ID,会計日時,合計金額,取り消し,商品バーコード,商品名,販売単価,数量\n")
+        stringBuilder.append("会計ID,会計日時,合計金額,取り消し,商品バーコード,商品名,tag,販売単価,数量\n")
 
         // データ行
         sales.forEach { saleWithDetails ->
             saleWithDetails.details.forEach { detail ->
+                val tag = productsMap[detail.productBarcode]?.tag ?: ""
                 stringBuilder.append(
                     "${saleWithDetails.sale.id}," +
                             "${dateFormat.format(saleWithDetails.sale.createdAt)}," +
@@ -115,8 +135,9 @@ class HistoryViewModel @Inject constructor(
                             "${saleWithDetails.sale.isCancelled}," +
                             "${detail.productBarcode}," +
                             "\"${detail.productName}\"," + // 商品名にカンマが含まれる可能性を考慮
+                            "\"$tag\"," +
                             "${detail.price}," +
-                            "${detail.quantity}\n"
+                            "${detail.quantity}," + "\n"
                 )
             }
         }
