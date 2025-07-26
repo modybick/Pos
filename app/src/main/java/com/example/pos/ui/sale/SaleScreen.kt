@@ -21,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview as Preview
 import androidx.compose.ui.unit.dp
@@ -29,8 +28,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import java.util.concurrent.Executors
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.ui.res.painterResource
+import com.example.pos.R
+import androidx.compose.ui.graphics.Color
 
 /**
  * メインのレジ画面
@@ -44,6 +45,8 @@ fun SaleScreen(
 ) {
     val uiState by saleViewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    var isTorchOn by remember { mutableStateOf(false) }
 
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 
@@ -114,7 +117,26 @@ fun SaleScreen(
                 .weight(0.2f) // 画面上部40%
         ) {
             if (hasCamPermission) {
-                CameraPreview(onBarcodeScanned = saleViewModel::onBarcodeScanned)
+                CameraPreview(
+                    isTorchOn = isTorchOn,
+                    onBarcodeScanned = saleViewModel::onBarcodeScanned
+                )
+                IconButton(
+                    onClick = { isTorchOn = !isTorchOn },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = Color.White // 背景を白に
+                    )
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (isTorchOn) R.drawable.flashlight_on else R.drawable.flashlight_off
+                        ),
+                        contentDescription = "ライト切り替え",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
             } else {
                 // 権限がない場合にメッセージを表示
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -136,7 +158,7 @@ fun SaleScreen(
                     onQuantityChanged = saleViewModel::onQuantityChanged,
                     modifier = Modifier.weight(1f)
                 )
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 TotalAmountDisplay(totalAmount = uiState.totalAmount)
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -186,11 +208,20 @@ fun SaleScreen(
  * CameraXのプレビューと画像解析を表示するComposable
  */
 @Composable
-private fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
+private fun CameraPreview(
+    isTorchOn: Boolean,
+    onBarcodeScanned: (String) -> Unit
+) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+    val camera = remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
+
+    // isTorchOnの状態が変化したら、ライトを制御する
+    LaunchedEffect(isTorchOn) {
+        camera.value?.cameraControl?.enableTorch(isTorchOn)
+    }
 
     AndroidView(
         factory = { ctx ->
@@ -212,7 +243,7 @@ private fun CameraPreview(onBarcodeScanned: (String) -> Unit) {
 
             try {
                 cameraProvider.unbindAll() // 既存のバインドを解除
-                cameraProvider.bindToLifecycle(
+                camera.value = cameraProvider.bindToLifecycle(
                     lifecycleOwner,
                     cameraSelector,
                     preview,
@@ -244,7 +275,7 @@ private fun CartList(
         LazyColumn(modifier = modifier) {
             items(items, key = { it.product.barcode }) { item ->
                 CartItemRow(item = item, onQuantityChanged = onQuantityChanged)
-                Divider()
+                HorizontalDivider()
             }
         }
     }
