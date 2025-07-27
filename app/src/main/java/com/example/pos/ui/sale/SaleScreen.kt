@@ -31,7 +31,6 @@ import java.util.concurrent.Executors
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.ui.res.painterResource
 import com.example.pos.R
-import androidx.compose.ui.graphics.Color
 import com.example.pos.utils.toCurrencyFormat
 
 /**
@@ -135,7 +134,10 @@ fun SaleScreen(
                     IconButton(
                         onClick = { isVibrationOn = !isVibrationOn },
                         colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = if (isVibrationOn) Color.White else Color.Gray
+                            containerColor = if (isVibrationOn) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (isVibrationOn) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     ) {
                         Icon(
@@ -143,7 +145,6 @@ fun SaleScreen(
                                 id = R.drawable.mobile_vibrate
                             ),
                             contentDescription = "バイブレーション切り替え",
-                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(36.dp)
                         )
                     }
@@ -151,7 +152,10 @@ fun SaleScreen(
                     IconButton(
                         onClick = { isTorchOn = !isTorchOn },
                         colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = if (isTorchOn) Color.White else Color.Gray
+                            containerColor = if (isTorchOn) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (isTorchOn) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     ) {
                         Icon(
@@ -159,7 +163,6 @@ fun SaleScreen(
                                 id = R.drawable.flashlight_on
                             ),
                             contentDescription = "ライト切り替え",
-                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(36.dp)
                         )
                     }
