@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,6 +14,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.pos.utils.NumberCommaTransformation
+import com.example.pos.utils.toCurrencyFormat
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,7 +86,7 @@ fun CheckoutScreen(
                         )
                         // 金額
                         Text(
-                            text = "${item.product.price * item.quantity}円",
+                            text = "${(item.product.price * item.quantity).toCurrencyFormat()}円",
                             modifier = Modifier.weight(0.3f),
                             textAlign = TextAlign.End
                         )
@@ -96,18 +100,49 @@ fun CheckoutScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // --- 預かり金額入力 ---
-            OutlinedTextField(
-                value = tenderedAmount,
-                onValueChange = { tenderedAmount = it.filter { char -> char.isDigit() } },
-                label = { Text("預かり金額") },
-                suffix = { Text("円") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-                textStyle = LocalTextStyle.current.copy(
-                    fontSize = 28.sp,
-                    textAlign = TextAlign.End
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // 同額ボタン
+                Button(
+                    onClick = { tenderedAmount = uiState.totalAmount.toString() },
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    Text("同額")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                // 入力欄
+                OutlinedTextField(
+                    value = tenderedAmount,
+                    onValueChange = { tenderedAmount = it.filter { char -> char.isDigit() } },
+                    label = { Text("預かり金額") },
+                    visualTransformation = NumberCommaTransformation(),
+                    suffix = {},
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    textStyle = LocalTextStyle.current.copy(
+                        fontSize = 28.sp,
+                        textAlign = TextAlign.End
+                    ),
+                    leadingIcon = {
+                        if (tenderedAmount.isNotEmpty()) {
+                            IconButton(onClick = { tenderedAmount = "" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "入力クリア"
+                                )
+                            }
+                        }
+                    }
                 )
-            )
+                // 単位
+                Text(
+                    text = " 円",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
             // --- お釣り表示 ---
@@ -118,7 +153,7 @@ fun CheckoutScreen(
             // --- 確定ボタン ---
             Button(
                 onClick = {
-                    saleViewModel.finalizeSale()
+                    saleViewModel.finalizeSale(tendered)
                     onNavigateBack() // レジ画面に戻る
                 },
                 // 預かり金額が合計以上の場合のみ有効
@@ -136,7 +171,7 @@ private fun AmountRow(label: String, amount: Int) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
         Text(
-            "$amount 円",
+            "${amount.toCurrencyFormat()} 円",
             style = MaterialTheme.typography.headlineLarge,
             textAlign = TextAlign.End,
             color = MaterialTheme.colorScheme.primary

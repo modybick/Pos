@@ -18,6 +18,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.text.font.FontWeight
+import com.example.pos.utils.toCurrencyFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,6 +95,7 @@ fun HistoryScreen(
             sheetState = sheetState
         ) {
             SaleDetailSheetContent(
+                sale = uiState.selectedSale!!, // saleオブジェクトを渡す
                 details = uiState.selectedSaleDetails!!,
                 isCancelled = uiState.selectedSale!!.isCancelled,
                 onCancelClick = { showCancelConfirmDialog = true },
@@ -164,6 +167,7 @@ private fun SaleHistoryRow(sale: com.example.pos.database.Sale, onClick: () -> U
 
 @Composable
 private fun SaleDetailSheetContent(
+    sale: com.example.pos.database.Sale,
     details: List<com.example.pos.database.SaleDetail>,
     isCancelled: Boolean,
     onCancelClick: () -> Unit,
@@ -221,7 +225,17 @@ private fun SaleDetailSheetContent(
                 }
             }
         }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+        DetailAmountRow(label = "合計金額", amount = sale.totalAmount)
+        Spacer(modifier = Modifier.height(8.dp))
+        DetailAmountRow(label = "預かり金額", amount = sale.tenderedAmount)
+        Spacer(modifier = Modifier.height(8.dp))
+        DetailAmountRow(label = "お釣り", amount = sale.changeAmount)
+
         Spacer(Modifier.height(24.dp))
+
         if (isCancelled) {
             // 取り消し済みの売上の場合
             Button(
@@ -255,9 +269,25 @@ private fun TotalSalesRow(totalAmount: Int) {
     ) {
         Text("合計売上", style = MaterialTheme.typography.titleMedium)
         Text(
-            "$totalAmount 円",
+            "${totalAmount.toCurrencyFormat()} 円",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+private fun DetailAmountRow(label: String, amount: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = "${amount.toCurrencyFormat()} 円",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold
         )
     }
 }

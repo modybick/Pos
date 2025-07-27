@@ -16,6 +16,11 @@ import com.example.pos.ui.sale.SaleScreen
 import com.example.pos.ui.sale.SaleViewModel
 import com.example.pos.ui.theme.PosTheme
 import dagger.hilt.android.AndroidEntryPoint
+// 👇 アニメーション用のimportを追加
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.ui.unit.IntOffset
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -25,13 +30,27 @@ class MainActivity : ComponentActivity() {
         setContent {
             PosTheme {
                 val navController = rememberNavController()
+
+                // 👇 ここでアニメーションの定義をまとめて作成する
+                val animationSpec = tween<IntOffset>(300)
+                val enterTransition = slideInHorizontally(initialOffsetX = { it }, animationSpec = animationSpec)
+                val exitTransition = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = animationSpec)
+                val popEnterTransition = slideInHorizontally(initialOffsetX = { -it }, animationSpec = animationSpec)
+                val popExitTransition = slideOutHorizontally(targetOffsetX = { it }, animationSpec = animationSpec)
+
                 NavHost(navController = navController, startDestination = "sales_flow") {
                     navigation(
                         startDestination = "sale",
                         route = "sales_flow"
                     ) {
                         // レジ画面
-                        composable("sale") { navBackStackEntry ->
+                        composable(
+                            "sale",
+                            enterTransition = { enterTransition },
+                            exitTransition = { exitTransition },
+                            popEnterTransition = { popEnterTransition },
+                            popExitTransition = { popExitTransition }
+                            ) { navBackStackEntry ->
                             // 親グラフに紐付いたViewModelを取得
                             val parentEntry = remember(navBackStackEntry) {
                                 navController.getBackStackEntry("sales_flow")
@@ -45,7 +64,13 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         // 会計画面
-                        composable("checkout") { navBackStackEntry ->
+                        composable(
+                            "checkout",
+                            enterTransition = { enterTransition },
+                            exitTransition = { exitTransition },
+                            popEnterTransition = { popEnterTransition },
+                            popExitTransition = { popExitTransition }
+                        ) { navBackStackEntry ->
                             // 親グラフに紐付いたViewModelを取得
                             val parentEntry = remember(navBackStackEntry) {
                                 navController.getBackStackEntry("sales_flow")
@@ -57,7 +82,13 @@ class MainActivity : ComponentActivity() {
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }
-                        composable("history") {
+                        composable(
+                            "history",
+                            enterTransition = { enterTransition },
+                            exitTransition = { exitTransition },
+                            popEnterTransition = { popEnterTransition },
+                            popExitTransition = { popExitTransition }
+                        ) {
                             HistoryScreen()
                         }
                     }

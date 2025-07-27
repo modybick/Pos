@@ -12,32 +12,11 @@ import androidx.room.TypeConverters
         Sale::class,
         SaleDetail::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false // 👈 この行を追加
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun saleDao(): SaleDao
-
-    companion object {
-        @Volatile
-        private var INSTANCE: AppDatabase? = null
-
-        fun getDatabase(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "app_database" // アプリ内部で使用するDB名
-                )
-                    // assetsフォルダにあるDBファイルを指定
-                    .createFromAsset("prepackaged.db")
-                    .fallbackToDestructiveMigration()
-                    .build()
-                INSTANCE = instance
-                instance
-            }
-        }
-    }
 }

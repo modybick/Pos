@@ -32,6 +32,8 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.ui.res.painterResource
 import com.example.pos.R
 import androidx.compose.ui.graphics.Color
+import com.example.pos.utils.toCurrencyFormat
+import androidx.compose.ui.layout.onSizeChanged
 
 /**
  * メインのレジ画面
@@ -218,6 +220,8 @@ private fun CameraPreview(
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val camera = remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
 
+    var previewSize by remember { mutableStateOf<Pair<Int, Int>>(Pair(0, 0)) }
+
     // isTorchOnの状態が変化したら、ライトを制御する
     LaunchedEffect(isTorchOn) {
         camera.value?.cameraControl?.enableTorch(isTorchOn)
@@ -225,34 +229,45 @@ private fun CameraPreview(
 
     AndroidView(
         factory = { ctx ->
-            val previewView = PreviewView(ctx)
-            val cameraProvider = cameraProviderFuture.get()
-
-            val preview = PV.Builder().build().also {
-                it.setSurfaceProvider(previewView.surfaceProvider)
+            PreviewView(ctx).apply {
+                // 👇 プレビューのサイズが確定したらStateを更新
+                addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+                    previewSize = Pair(right - left, bottom - top)
+                }
             }
-
-            val imageAnalysis = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-                .also {
-                    it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(onBarcodeScanned))
+        },
+        // 👇 プレビューサイズが取得できたら、カメラをバインドする
+        update = { previewView ->
+            if (previewSize.first > 0 && previewSize.second > 0) {
+                val cameraProvider = cameraProviderFuture.get()
+                val preview = PV.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                val imageAnalysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also {
+                        // 👇 Analyzerにプレビューサイズを渡す
+                        it.setAnalyzer(
+                            cameraExecutor,
+                            BarcodeAnalyzer(
+                                viewWidth = previewSize.first,
+                                viewHeight = previewSize.second,
+                                onBarcodeDetected = onBarcodeScanned
+                            )
+                        )
+                    }
 
-            try {
-                cameraProvider.unbindAll() // 既存のバインドを解除
-                camera.value = cameraProvider.bindToLifecycle(
-                    lifecycleOwner,
-                    cameraSelector,
-                    preview,
-                    imageAnalysis
-                )
-            } catch (e: Exception) {
-                // ライフサイクルバインド時のエラー
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+                try {
+                    cameraProvider.unbindAll()
+                    camera.value = cameraProvider.bindToLifecycle(
+                        lifecycleOwner, cameraSelector, preview, imageAnalysis
+                    )
+                } catch (e: Exception) { /* ... */ }
             }
-            previewView
         },
         modifier = Modifier.fillMaxSize()
     )
@@ -297,7 +312,7 @@ private fun CartItemRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(item.product.name, fontWeight = FontWeight.Bold)
-            Text("単価: ${item.product.price}円")
+            Text("単価: ${item.product.price.toCurrencyFormat()}円")
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             // 数量が1の場合は削除アイコン、それ以外はマイナスアイコン
@@ -326,7 +341,7 @@ private fun TotalAmountDisplay(totalAmount: Int) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text("合計", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Text("${totalAmount}円", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Text("${totalAmount.toCurrencyFormat()}円", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
     }
 }
 

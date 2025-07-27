@@ -19,6 +19,12 @@ data class Sale(
     // 合計金額
     val totalAmount: Int,
 
+    // 預かり金額
+    val tenderedAmount: Int,
+
+    // お釣り
+    val changeAmount: Int,
+
     // 取り消しフラグ
     val isCancelled: Boolean = false
 )

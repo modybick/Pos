@@ -107,16 +107,23 @@ class SaleViewModel @Inject constructor(
         }
     }
 
-    fun finalizeSale() {
+    fun finalizeSale(tenderedAmount: Int) {
         if (_uiState.value.cartItems.isEmpty()) return
 
         soundPool.play(checkoutSoundId, 1f, 1f, 0, 0, 1f)
 
         viewModelScope.launch {
+            val total = _uiState.value.totalAmount
+            val change = tenderedAmount - total
+
             val sale = Sale(
                 createdAt = Date(),
                 totalAmount = _uiState.value.totalAmount,
+                tenderedAmount = tenderedAmount,
+                changeAmount = change,
+                isCancelled = false
             )
+
             val details = _uiState.value.cartItems.map { cartItem ->
                 SaleDetail(
                     saleId = 0, // Dao側で設定されるので仮の値
