@@ -18,6 +18,11 @@ import com.example.pos.database.Sale
 import com.example.pos.database.SaleDao
 import com.example.pos.database.SaleDetail
 import java.util.Date
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 
 @HiltViewModel
 class SaleViewModel @Inject constructor(
@@ -33,6 +38,13 @@ class SaleViewModel @Inject constructor(
     private var scanSoundId: Int = 0
     private var errorSoundId: Int = 0
     private var checkoutSoundId: Int = 0
+
+    private val vibrator = getVibrator(application)
+    private var isVibrationEnabled = true
+
+    fun setVibrationEnabled(isEnabled: Boolean) {
+        isVibrationEnabled = isEnabled
+    }
 
     // サンプル用に初期データを追加
     init {
@@ -86,6 +98,10 @@ class SaleViewModel @Inject constructor(
                 // --- 商品が見つかった場合 ---
                 soundPool.play(scanSoundId, 1f, 1f, 0, 0, 1f)
 
+                if (isVibrationEnabled) {
+                    vibrateSuccess()
+                }
+
                 val currentItems = _uiState.value.cartItems
                 val existingItem = currentItems.find { it.product.barcode == barcode }
 
@@ -104,6 +120,26 @@ class SaleViewModel @Inject constructor(
                 soundPool.play(errorSoundId, 1f, 1f, 0, 0, 1f)
                 // TODO: ユーザーに「商品が見つかりません」と通知する（Toastなど）
             }
+        }
+    }
+
+    private fun getVibrator(context: Context): Vibrator {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager =
+                context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+    }
+
+    private fun vibrateSuccess() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(100)
         }
     }
 

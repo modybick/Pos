@@ -33,7 +33,6 @@ import androidx.compose.ui.res.painterResource
 import com.example.pos.R
 import androidx.compose.ui.graphics.Color
 import com.example.pos.utils.toCurrencyFormat
-import androidx.compose.ui.layout.onSizeChanged
 
 /**
  * メインのレジ画面
@@ -49,6 +48,11 @@ fun SaleScreen(
     val context = LocalContext.current
 
     var isTorchOn by remember { mutableStateOf(false) }
+
+    var isVibrationOn by remember { mutableStateOf(true) }
+    LaunchedEffect(isVibrationOn) {
+        saleViewModel.setVibrationEnabled(isVibrationOn)
+    }
 
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 
@@ -123,21 +127,42 @@ fun SaleScreen(
                     isTorchOn = isTorchOn,
                     onBarcodeScanned = saleViewModel::onBarcodeScanned
                 )
-                IconButton(
-                    onClick = { isTorchOn = !isTorchOn },
+                Row(
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = Color.White // 背景を白に
-                    )
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        painter = painterResource(
-                            id = if (isTorchOn) R.drawable.flashlight_on else R.drawable.flashlight_off
-                        ),
-                        contentDescription = "ライト切り替え",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(36.dp)
-                    )
+                    // バイブレーションON/OFFボタン
+                    IconButton(
+                        onClick = { isVibrationOn = !isVibrationOn },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = if (isVibrationOn) Color.White else Color.Gray
+                        )
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                id = R.drawable.mobile_vibrate
+                            ),
+                            contentDescription = "バイブレーション切り替え",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                    // ライトのON/OFFボタン
+                    IconButton(
+                        onClick = { isTorchOn = !isTorchOn },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = if (isTorchOn) Color.White else Color.Gray
+                        )
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                id = R.drawable.flashlight_on
+                            ),
+                            contentDescription = "ライト切り替え",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
                 }
             } else {
                 // 権限がない場合にメッセージを表示
