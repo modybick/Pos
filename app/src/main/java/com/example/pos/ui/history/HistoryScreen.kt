@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.text.font.FontWeight
 import com.example.pos.utils.toCurrencyFormat
+import androidx.compose.material.icons.filled.Delete
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +33,8 @@ fun HistoryScreen(
 
     var showCancelConfirmDialog by remember { mutableStateOf(false) }
     var showUncancelConfirmDialog by remember { mutableStateOf(false) }
+
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
 
     // 👇 ファイル作成インテントを準備
     val csvFileLauncher = rememberLauncherForActivityResult(
@@ -48,6 +51,10 @@ fun HistoryScreen(
         topBar = { TopAppBar(
             title = { Text("売上履歴") },
             actions = {
+                // クリアボタン
+                IconButton(onClick = { showClearConfirmDialog = true }) {
+                    Icon(Icons.Default.Delete, contentDescription = "履歴をクリア")
+                }
                 IconButton(onClick = {
                     val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.JAPAN)
                     val fileName = "sales_history_${dateFormat.format(Date())}.csv"
@@ -130,6 +137,7 @@ fun HistoryScreen(
             }
         )
     }
+
     if (showUncancelConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showUncancelConfirmDialog = false },
@@ -147,6 +155,30 @@ fun HistoryScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showUncancelConfirmDialog = false }) {
+                    Text("いいえ")
+                }
+            }
+        )
+    }
+
+    // 👇 履歴クリア確認ダイアログ
+    if (showClearConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmDialog = false },
+            title = { Text("履歴の全件削除") },
+            text = { Text("すべての売上履歴を削除します。\nこの操作は元に戻せません。よろしいですか？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        historyViewModel.clearHistory()
+                        showClearConfirmDialog = false
+                    }
+                ) {
+                    Text("はい、削除します")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmDialog = false }) {
                     Text("いいえ")
                 }
             }

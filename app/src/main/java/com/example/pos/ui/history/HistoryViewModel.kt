@@ -166,4 +166,10 @@ class HistoryViewModel @Inject constructor(
             }
         }
     }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            saleRepository.clearAllSales()
+        }
+    }
 }
