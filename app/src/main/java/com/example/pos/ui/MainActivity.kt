@@ -20,6 +20,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.unit.IntOffset
 
 @AndroidEntryPoint
@@ -57,6 +58,11 @@ class MainActivity : ComponentActivity() {
                             }
                             val saleViewModel: SaleViewModel = hiltViewModel(parentEntry)
 
+                            // 👇 この画面が表示されるたびにリクエストをチェック
+                            LaunchedEffect(Unit) {
+                                saleViewModel.checkForCartReproductionRequest()
+                            }
+
                             SaleScreen(
                                 saleViewModel = saleViewModel, // 共有ViewModelを渡す
                                 onNavigateToCheckout = { navController.navigate("checkout") },
@@ -89,7 +95,9 @@ class MainActivity : ComponentActivity() {
                             popEnterTransition = { popEnterTransition },
                             popExitTransition = { popExitTransition }
                         ) {
-                            HistoryScreen()
+                            HistoryScreen(
+                                onNavigateBack = { navController.popBackStack() }
+                            )
                         }
                     }
                 }

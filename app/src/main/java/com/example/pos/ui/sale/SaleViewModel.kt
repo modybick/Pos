@@ -23,7 +23,11 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import androidx.core.content.edit
+import androidx.lifecycle.application
 import com.example.pos.data.DeviceIdManager
+import com.example.pos.database.Product
+import com.google.gson.Gson
 
 @HiltViewModel
 class SaleViewModel @Inject constructor(
@@ -137,12 +141,7 @@ class SaleViewModel @Inject constructor(
     }
 
     private fun vibrateSuccess() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(100)
-        }
+        vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
     fun finalizeSale(tenderedAmount: Int) {
@@ -187,5 +186,36 @@ class SaleViewModel @Inject constructor(
         super.onCleared()
         // ViewModelが破棄されるときにSoundPoolを解放
         soundPool.release()
+    }
+
+    // 👇 アプリがフォアグラウンドに戻った時などに呼び出す
+    fun checkForCartReproductionRequest() {
+        val prefs = application.getSharedPreferences("pos_prefs", Context.MODE_PRIVATE)
+        val detailsJson = prefs.getString("reproduce_cart_details", null)
+
+        if (detailsJson != null) {
+            val gson = Gson()
+            val type = object : com.google.gson.reflect.TypeToken<List<SaleDetail>>() {}.type
+            val details: List<SaleDetail> = gson.fromJson(detailsJson, type)
+
+            // 既存のカートをクリアして、新しいアイテムを追加
+            val newCartItems = details.map {
+                CartItem(
+                    product = Product(it.productBarcode, it.productName, it.price, null), // 仮のProduct
+                    quantity = it.quantity
+                )
+            }
+            _uiState.update {
+                it.copy(
+                    cartItems = newCartItems,
+                    totalAmount = calculateTotal(newCartItems)
+                )
+            }
+
+            // 処理が終わったらリクエストを削除
+            prefs.edit {
+                remove("reproduce_cart_details")
+            }
+        }
     }
 }

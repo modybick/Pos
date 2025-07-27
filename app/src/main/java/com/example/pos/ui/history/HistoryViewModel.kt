@@ -1,7 +1,7 @@
 package com.example.pos.ui.history
 
 import android.app.Application
-import androidx.lifecycle.ViewModel
+import android.content.Context
 import androidx.lifecycle.viewModelScope
 import com.example.pos.data.SaleRepository
 import com.example.pos.database.Sale
@@ -13,9 +13,12 @@ import javax.inject.Inject
 import android.icu.text.SimpleDateFormat
 import android.net.Uri
 import android.widget.Toast
+import androidx.core.content.edit
 import java.io.IOException
 import java.util.Locale
 import com.example.pos.data.ProductRepository
+import androidx.lifecycle.AndroidViewModel
+import com.google.gson.Gson
 
 data class HistoryUiState(
     val sales: List<Sale> = emptyList(),
@@ -30,7 +33,7 @@ class HistoryViewModel @Inject constructor(
     private val saleRepository: SaleRepository,
     private val productRepository: ProductRepository,
     private val application: Application
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
@@ -145,5 +148,21 @@ class HistoryViewModel @Inject constructor(
             }
         }
         return stringBuilder.toString()
+    }
+
+    // 👇 カート再現リクエストを保存するメソッド
+    fun requestCartReproduction() {
+        _uiState.value.selectedSaleDetails?.let { details ->
+            if (details.isNotEmpty()) {
+                val prefs = application.getSharedPreferences("pos_prefs", Context.MODE_PRIVATE)
+                val gson = Gson()
+                // 明細リストをJSON文字列に変換して保存
+                val detailsJson = gson.toJson(details)
+                prefs.edit {
+                    putString("reproduce_cart_details", detailsJson)
+                }
+                onDismissSaleDetails()
+            }
+        }
     }
 }

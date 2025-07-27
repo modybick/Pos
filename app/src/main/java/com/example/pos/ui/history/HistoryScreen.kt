@@ -24,7 +24,8 @@ import com.example.pos.utils.toCurrencyFormat
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
-    historyViewModel: HistoryViewModel = hiltViewModel()
+    historyViewModel: HistoryViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit
 ) {
     val uiState by historyViewModel.uiState.collectAsState()
     val sheetState = rememberModalBottomSheetState()
@@ -99,7 +100,11 @@ fun HistoryScreen(
                 details = uiState.selectedSaleDetails!!,
                 isCancelled = uiState.selectedSale!!.isCancelled,
                 onCancelClick = { showCancelConfirmDialog = true },
-                onUncancelClick = { showUncancelConfirmDialog = true }
+                onUncancelClick = { showUncancelConfirmDialog = true },
+                onReproduceClick = {
+                    historyViewModel.requestCartReproduction()
+                    onNavigateBack() // レジ画面に戻る
+                }
             )
         }
     }
@@ -171,7 +176,8 @@ private fun SaleDetailSheetContent(
     details: List<com.example.pos.database.SaleDetail>,
     isCancelled: Boolean,
     onCancelClick: () -> Unit,
-    onUncancelClick: () -> Unit
+    onUncancelClick: () -> Unit,
+    onReproduceClick: () -> Unit
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         Text("会計詳細", style = MaterialTheme.typography.titleLarge)
@@ -235,6 +241,14 @@ private fun SaleDetailSheetContent(
         DetailAmountRow(label = "お釣り", amount = sale.changeAmount)
 
         Spacer(Modifier.height(24.dp))
+
+        OutlinedButton(
+            onClick = onReproduceClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("内容をカートに展開")
+        }
+        Spacer(Modifier.height(8.dp))
 
         if (isCancelled) {
             // 取り消し済みの売上の場合
