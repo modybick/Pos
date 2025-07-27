@@ -27,7 +27,7 @@ interface ProductDao {
      * Flowを使用することで、データが変更されるたびに自動で最新のリストが通知される。
      * @return 商品リストのFlow
      */
-    @Query("SELECT * FROM products ORDER BY name ASC")
+    @Query("SELECT * FROM products ORDER BY barcode ASC")
     fun getAllProducts(): Flow<List<Product>>
 
     /**

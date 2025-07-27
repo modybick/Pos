@@ -32,11 +32,13 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.ui.res.painterResource
 import com.example.pos.R
 import com.example.pos.utils.toCurrencyFormat
+import com.example.pos.ui.products.ProductListScreen
 
 /**
  * メインのレジ画面
  * 上部にカメラプレビュー、下部にカート情報を表示する
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaleScreen(
     saleViewModel: SaleViewModel,
@@ -52,6 +54,10 @@ fun SaleScreen(
     LaunchedEffect(isVibrationOn) {
         saleViewModel.setVibrationEnabled(isVibrationOn)
     }
+
+    // 👇 ボトムシートの表示状態を管理
+    val sheetState = rememberModalBottomSheetState()
+    var showProductSheet by remember { mutableStateOf(false) }
 
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 
@@ -221,6 +227,13 @@ fun SaleScreen(
                         Text("クリア")
                     }
 
+                    OutlinedButton(
+                        onClick = { showProductSheet = true }, // 👈 ボトムシートを表示
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("商品一覧")
+                    }
+
                     // 売上履歴ボタン
                     OutlinedButton(
                         onClick = onNavigateToHistory,
@@ -230,6 +243,21 @@ fun SaleScreen(
                     }
                 }
             }
+        }
+    }
+    // 👇 商品一覧ボトムシートの定義
+    if (showProductSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showProductSheet = false },
+            sheetState = sheetState
+        ) {
+            // ボトムシートの中身としてProductListScreenを呼び出す
+            ProductListScreen(
+                onProductSelected = { barcode ->
+                    saleViewModel.onBarcodeScanned(barcode)
+                    // 連続追加できるよう、ここではシートを閉じない
+                }
+            )
         }
     }
 }
