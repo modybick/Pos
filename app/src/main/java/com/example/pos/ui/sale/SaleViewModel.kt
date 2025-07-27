@@ -144,7 +144,7 @@ class SaleViewModel @Inject constructor(
         vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
-    fun finalizeSale(tenderedAmount: Int) {
+    fun finalizeSale(tenderedAmount: Int, paymentMethod: String) {
         if (_uiState.value.cartItems.isEmpty()) return
 
         soundPool.play(checkoutSoundId, 1f, 1f, 0, 0, 1f)
@@ -156,6 +156,7 @@ class SaleViewModel @Inject constructor(
             val sale = Sale(
                 terminalId = deviceIdManager.getDeviceId(),
                 createdAt = Date(),
+                paymentMethod = paymentMethod,
                 totalAmount = _uiState.value.totalAmount,
                 tenderedAmount = tenderedAmount,
                 changeAmount = change,

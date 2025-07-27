@@ -248,7 +248,7 @@ private fun CameraPreview(
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val camera = remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
 
-    var previewSize by remember { mutableStateOf<Pair<Int, Int>>(Pair(0, 0)) }
+    var previewSize by remember { mutableStateOf(Pair(0, 0)) }
 
     // isTorchOnの状態が変化したら、ライトを制御する
     LaunchedEffect(isTorchOn) {
@@ -269,7 +269,7 @@ private fun CameraPreview(
             if (previewSize.first > 0 && previewSize.second > 0) {
                 val cameraProvider = cameraProviderFuture.get()
                 val preview = PV.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
+                    it.surfaceProvider = previewView.surfaceProvider
                 }
 
                 val imageAnalysis = ImageAnalysis.Builder()

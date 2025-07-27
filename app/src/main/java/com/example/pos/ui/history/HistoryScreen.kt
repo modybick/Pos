@@ -166,6 +166,7 @@ private fun SaleHistoryRow(sale: com.example.pos.database.Sale, onClick: () -> U
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(dateFormat.format(sale.createdAt), modifier = Modifier.weight(1f), textDecoration = textDecoration)
+        Text(sale.paymentMethod, modifier = Modifier.weight(1f), textDecoration = textDecoration)
         Text("${sale.totalAmount} 円", textDecoration = textDecoration)
     }
 }
@@ -234,6 +235,14 @@ private fun SaleDetailSheetContent(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("決済方法")
+            Text(sale.paymentMethod)
+        }
         DetailAmountRow(label = "合計金額", amount = sale.totalAmount)
         Spacer(modifier = Modifier.height(8.dp))
         DetailAmountRow(label = "預かり金額", amount = sale.tenderedAmount)

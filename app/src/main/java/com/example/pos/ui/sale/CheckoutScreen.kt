@@ -150,17 +150,36 @@ fun CheckoutScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- 確定ボタン ---
-            Button(
-                onClick = {
-                    saleViewModel.finalizeSale(tendered)
-                    onNavigateBack() // レジ画面に戻る
-                },
-                // 預かり金額が合計以上の場合のみ有効
-                enabled = tendered >= uiState.totalAmount,
-                modifier = Modifier.fillMaxWidth().height(48.dp)
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("会計を確定")
+                // --- PayPay ---
+                Button(
+                    onClick = {
+                        saleViewModel.finalizeSale(tendered, "PayPay")
+                        onNavigateBack() // レジ画面に戻る
+                    },
+                    // 預かり金額が合計以上の場合のみ有効
+                    enabled = tendered >= uiState.totalAmount,
+                    modifier = Modifier.weight(1f).height(48.dp),
+
+                ) {
+                    Text("PayPay")
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                // --- 現金 ---
+                Button(
+                    onClick = {
+                        saleViewModel.finalizeSale(tendered, "現金")
+                        onNavigateBack() // レジ画面に戻る
+                    },
+                    // 預かり金額が合計以上の場合のみ有効
+                    enabled = tendered >= uiState.totalAmount,
+                    modifier = Modifier.weight(1f).height(48.dp)
+                ) {
+                    Text("現金")
+                }
             }
         }
     }
