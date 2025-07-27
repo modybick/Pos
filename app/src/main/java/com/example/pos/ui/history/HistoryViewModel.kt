@@ -122,14 +122,15 @@ class HistoryViewModel @Inject constructor(
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.JAPAN)
         val stringBuilder = StringBuilder()
         // ヘッダー行
-        stringBuilder.append("会計ID,会計日時,合計金額,預かり金額,お釣り,取り消し,商品バーコード,商品名,tag,販売単価,数量\n")
+        stringBuilder.append("端末ID,会計ID,会計日時,合計金額,預かり金額,お釣り,取り消し,商品バーコード,商品名,tag,販売単価,数量\n")
 
         // データ行
         sales.forEach { saleWithDetails ->
             saleWithDetails.details.forEach { detail ->
                 val tag = productsMap[detail.productBarcode]?.tag ?: ""
                 stringBuilder.append(
-                    "${saleWithDetails.sale.id}," +
+                    "${saleWithDetails.sale.terminalId}," +
+                            "${saleWithDetails.sale.id}," +
                             "${dateFormat.format(saleWithDetails.sale.createdAt)}," +
                             "${saleWithDetails.sale.totalAmount}," +
                             "${saleWithDetails.sale.tenderedAmount}," +

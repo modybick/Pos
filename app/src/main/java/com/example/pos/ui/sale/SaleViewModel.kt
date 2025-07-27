@@ -23,12 +23,14 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import com.example.pos.data.DeviceIdManager
 
 @HiltViewModel
 class SaleViewModel @Inject constructor(
     application: Application,
     private val productRepository: ProductRepository,
-    private val saleDao: SaleDao
+    private val saleDao: SaleDao,
+    private val deviceIdManager: DeviceIdManager
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(SaleUiState())
@@ -153,6 +155,7 @@ class SaleViewModel @Inject constructor(
             val change = tenderedAmount - total
 
             val sale = Sale(
+                terminalId = deviceIdManager.getDeviceId(),
                 createdAt = Date(),
                 totalAmount = _uiState.value.totalAmount,
                 tenderedAmount = tenderedAmount,

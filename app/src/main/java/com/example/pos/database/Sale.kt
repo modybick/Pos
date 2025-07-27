@@ -13,6 +13,9 @@ data class Sale(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0L,
 
+    // 端末ID
+    val terminalId: String,
+
     // 会計が行われた日時
     val createdAt: Date,
 
