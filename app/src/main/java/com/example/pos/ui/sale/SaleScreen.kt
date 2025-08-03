@@ -33,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import com.example.pos.R
 import com.example.pos.utils.toCurrencyFormat
 import com.example.pos.ui.products.ProductListScreen
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 /**
  * メインのレジ画面
@@ -47,6 +48,8 @@ fun SaleScreen(
 ) {
     val uiState by saleViewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    val lazyListState = rememberLazyListState() // 👈 LazyColumnの状態を管理
 
     var isTorchOn by remember { mutableStateOf(false) }
 
@@ -115,6 +118,21 @@ fun SaleScreen(
     LaunchedEffect(key1 = true) {
         if (!hasCamPermission) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        // スキャンイベントを監視
+        saleViewModel.scrollToBarcode.collect { barcode ->
+            // データが更新されるのを少し待ってからインデックスを探す
+            // こうしないと、古いリストからインデックスを探してしまうことがある
+            kotlinx.coroutines.delay(100)
+
+            val index = uiState.cartItems.indexOfFirst { it.product.barcode == barcode }
+            // 👇 indexが-1でない（商品が見つかった）場合のみスクロール
+            if (index != -1) {
+                lazyListState.animateScrollToItem(index = index)
+            }
         }
     }
 
@@ -192,7 +210,8 @@ fun SaleScreen(
                 CartList(
                     items = uiState.cartItems,
                     onQuantityChanged = saleViewModel::onQuantityChanged,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    lazyListState = lazyListState
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 TotalAmountDisplay(totalAmount = uiState.totalAmount)
@@ -336,14 +355,18 @@ private fun CameraPreview(
 private fun CartList(
     items: List<CartItem>,
     onQuantityChanged: (String, Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    lazyListState: androidx.compose.foundation.lazy.LazyListState
 ) {
     if (items.isEmpty()) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("商品をスキャンしてください")
         }
     } else {
-        LazyColumn(modifier = modifier) {
+        LazyColumn(
+            modifier = modifier,
+            state = lazyListState
+        ) {
             items(items, key = { it.product.barcode }) { item ->
                 CartItemRow(item = item, onQuantityChanged = onQuantityChanged)
                 HorizontalDivider()

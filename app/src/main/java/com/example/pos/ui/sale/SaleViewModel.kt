@@ -28,6 +28,9 @@ import androidx.lifecycle.application
 import com.example.pos.data.DeviceIdManager
 import com.example.pos.database.Product
 import com.google.gson.Gson
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+
 
 @HiltViewModel
 class SaleViewModel @Inject constructor(
@@ -47,6 +50,9 @@ class SaleViewModel @Inject constructor(
 
     private val vibrator = getVibrator(application)
     private var isVibrationEnabled = true
+
+    private val _scrollToBarcode = MutableSharedFlow<String>()
+    val scrollToBarcode: SharedFlow<String> = _scrollToBarcode
 
     fun setVibrationEnabled(isEnabled: Boolean) {
         isVibrationEnabled = isEnabled
@@ -103,6 +109,8 @@ class SaleViewModel @Inject constructor(
             if (product != null) {
                 // --- 商品が見つかった場合 ---
                 soundPool.play(scanSoundId, 1f, 1f, 0, 0, 1f)
+
+                _scrollToBarcode.emit(barcode)
 
                 if (isVibrationEnabled) {
                     vibrateSuccess()
