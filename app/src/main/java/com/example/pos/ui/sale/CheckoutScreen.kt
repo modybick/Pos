@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pos.utils.NumberCommaTransformation
 import com.example.pos.utils.toCurrencyFormat
-
+import androidx.compose.runtime.remember
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +31,11 @@ fun CheckoutScreen(
     val change = tendered - uiState.totalAmount // お釣り
 
     val totalItemCount = uiState.cartItems.sumOf { it.quantity } // 商品点数を計算
+
+    // カートのアイテムを並び替え
+    val sortedCartItems = remember(uiState.cartItems) {
+        uiState.cartItems.sortedBy { it.product.barcode }
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("会計") }) }
@@ -67,7 +72,7 @@ fun CheckoutScreen(
             HorizontalDivider()
             // --- 商品リスト（確認用） ---
             LazyColumn(modifier = Modifier.weight(1f)) {
-                items(uiState.cartItems) { item ->
+                items(sortedCartItems) { item ->
                     // 👇 各データ行
                     Row(
                         modifier = Modifier.padding(vertical = 8.dp),

@@ -171,7 +171,9 @@ class SaleViewModel @Inject constructor(
                 isCancelled = false
             )
 
-            val details = _uiState.value.cartItems.map { cartItem ->
+            val details = _uiState.value.cartItems
+                .sortedBy { it.product.barcode }
+                .map { cartItem ->
                 SaleDetail(
                     saleId = 0, // Dao側で設定されるので仮の値
                     productBarcode = cartItem.product.barcode,
