@@ -32,11 +32,14 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.ui.res.painterResource
 import com.example.pos.R
 import com.example.pos.utils.toCurrencyFormat
+import com.example.pos.ui.products.ProductListScreen
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 /**
  * メインのレジ画面
  * 上部にカメラプレビュー、下部にカート情報を表示する
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaleScreen(
     saleViewModel: SaleViewModel,
@@ -46,12 +49,18 @@ fun SaleScreen(
     val uiState by saleViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    val lazyListState = rememberLazyListState() // 👈 LazyColumnの状態を管理
+
     var isTorchOn by remember { mutableStateOf(false) }
 
     var isVibrationOn by remember { mutableStateOf(true) }
     LaunchedEffect(isVibrationOn) {
         saleViewModel.setVibrationEnabled(isVibrationOn)
     }
+
+    // 👇 ボトムシートの表示状態を管理
+    val sheetState = rememberModalBottomSheetState()
+    var showProductSheet by remember { mutableStateOf(false) }
 
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 
@@ -109,6 +118,21 @@ fun SaleScreen(
     LaunchedEffect(key1 = true) {
         if (!hasCamPermission) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        // スキャンイベントを監視
+        saleViewModel.scrollToBarcode.collect { barcode ->
+            // データが更新されるのを少し待ってからインデックスを探す
+            // こうしないと、古いリストからインデックスを探してしまうことがある
+            kotlinx.coroutines.delay(100)
+
+            val index = uiState.cartItems.indexOfFirst { it.product.barcode == barcode }
+            // 👇 indexが-1でない（商品が見つかった）場合のみスクロール
+            if (index != -1) {
+                lazyListState.animateScrollToItem(index = index)
+            }
         }
     }
 
@@ -186,7 +210,8 @@ fun SaleScreen(
                 CartList(
                     items = uiState.cartItems,
                     onQuantityChanged = saleViewModel::onQuantityChanged,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    lazyListState = lazyListState
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 TotalAmountDisplay(totalAmount = uiState.totalAmount)
@@ -221,6 +246,13 @@ fun SaleScreen(
                         Text("クリア")
                     }
 
+                    OutlinedButton(
+                        onClick = { showProductSheet = true }, // 👈 ボトムシートを表示
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("商品一覧")
+                    }
+
                     // 売上履歴ボタン
                     OutlinedButton(
                         onClick = onNavigateToHistory,
@@ -230,6 +262,21 @@ fun SaleScreen(
                     }
                 }
             }
+        }
+    }
+    // 👇 商品一覧ボトムシートの定義
+    if (showProductSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showProductSheet = false },
+            sheetState = sheetState
+        ) {
+            // ボトムシートの中身としてProductListScreenを呼び出す
+            ProductListScreen(
+                onProductSelected = { barcode ->
+                    saleViewModel.onBarcodeScanned(barcode)
+                    // 連続追加できるよう、ここではシートを閉じない
+                }
+            )
         }
     }
 }
@@ -248,7 +295,7 @@ private fun CameraPreview(
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val camera = remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
 
-    var previewSize by remember { mutableStateOf<Pair<Int, Int>>(Pair(0, 0)) }
+    var previewSize by remember { mutableStateOf(Pair(0, 0)) }
 
     // isTorchOnの状態が変化したら、ライトを制御する
     LaunchedEffect(isTorchOn) {
@@ -269,7 +316,7 @@ private fun CameraPreview(
             if (previewSize.first > 0 && previewSize.second > 0) {
                 val cameraProvider = cameraProviderFuture.get()
                 val preview = PV.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
+                    it.surfaceProvider = previewView.surfaceProvider
                 }
 
                 val imageAnalysis = ImageAnalysis.Builder()
@@ -308,14 +355,18 @@ private fun CameraPreview(
 private fun CartList(
     items: List<CartItem>,
     onQuantityChanged: (String, Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    lazyListState: androidx.compose.foundation.lazy.LazyListState
 ) {
     if (items.isEmpty()) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("商品をスキャンしてください")
         }
     } else {
-        LazyColumn(modifier = modifier) {
+        LazyColumn(
+            modifier = modifier,
+            state = lazyListState
+        ) {
             items(items, key = { it.product.barcode }) { item ->
                 CartItemRow(item = item, onQuantityChanged = onQuantityChanged)
                 HorizontalDivider()

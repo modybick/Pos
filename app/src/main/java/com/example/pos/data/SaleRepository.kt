@@ -14,6 +14,7 @@ interface SaleRepository {
     suspend fun cancelSale(saleId: Long)
     suspend fun uncancelSale(saleId: Long)
     suspend fun getSalesWithDetails(): List<SaleWithDetails>
+    suspend fun clearAllSales()
 }
 
 // 設計図の実装
@@ -30,5 +31,8 @@ class SaleRepositoryImpl @Inject constructor(
     }
     override suspend fun getSalesWithDetails(): List<SaleWithDetails> {
         return saleDao.getSalesWithDetails()
+    }
+    override suspend fun clearAllSales() {
+        saleDao.clearAllSales()
     }
 }

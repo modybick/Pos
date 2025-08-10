@@ -79,4 +79,9 @@ interface SaleDao {
     @Transaction
     @Query("SELECT * FROM sales")
     suspend fun getSalesWithDetails(): List<SaleWithDetails>
+
+    // 👇 salesテーブルの全データを削除するクエリを追加
+    // sale_detailsはCASCADEにより自動で削除される
+    @Query("DELETE FROM sales")
+    suspend fun clearAllSales()
 }

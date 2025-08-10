@@ -19,6 +19,9 @@ data class Sale(
     // 会計が行われた日時
     val createdAt: Date,
 
+    // 決済方法
+    val paymentMethod: String,
+
     // 合計金額
     val totalAmount: Int,
 

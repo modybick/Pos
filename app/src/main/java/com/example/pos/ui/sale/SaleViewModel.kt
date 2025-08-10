@@ -28,6 +28,9 @@ import androidx.lifecycle.application
 import com.example.pos.data.DeviceIdManager
 import com.example.pos.database.Product
 import com.google.gson.Gson
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+
 
 @HiltViewModel
 class SaleViewModel @Inject constructor(
@@ -47,6 +50,9 @@ class SaleViewModel @Inject constructor(
 
     private val vibrator = getVibrator(application)
     private var isVibrationEnabled = true
+
+    private val _scrollToBarcode = MutableSharedFlow<String>()
+    val scrollToBarcode: SharedFlow<String> = _scrollToBarcode
 
     fun setVibrationEnabled(isEnabled: Boolean) {
         isVibrationEnabled = isEnabled
@@ -104,6 +110,8 @@ class SaleViewModel @Inject constructor(
                 // --- 商品が見つかった場合 ---
                 soundPool.play(scanSoundId, 1f, 1f, 0, 0, 1f)
 
+                _scrollToBarcode.emit(barcode)
+
                 if (isVibrationEnabled) {
                     vibrateSuccess()
                 }
@@ -144,7 +152,7 @@ class SaleViewModel @Inject constructor(
         vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
-    fun finalizeSale(tenderedAmount: Int) {
+    fun finalizeSale(tenderedAmount: Int, paymentMethod: String) {
         if (_uiState.value.cartItems.isEmpty()) return
 
         soundPool.play(checkoutSoundId, 1f, 1f, 0, 0, 1f)
@@ -156,13 +164,16 @@ class SaleViewModel @Inject constructor(
             val sale = Sale(
                 terminalId = deviceIdManager.getDeviceId(),
                 createdAt = Date(),
+                paymentMethod = paymentMethod,
                 totalAmount = _uiState.value.totalAmount,
                 tenderedAmount = tenderedAmount,
                 changeAmount = change,
                 isCancelled = false
             )
 
-            val details = _uiState.value.cartItems.map { cartItem ->
+            val details = _uiState.value.cartItems
+                .sortedBy { it.product.barcode }
+                .map { cartItem ->
                 SaleDetail(
                     saleId = 0, // Dao側で設定されるので仮の値
                     productBarcode = cartItem.product.barcode,
