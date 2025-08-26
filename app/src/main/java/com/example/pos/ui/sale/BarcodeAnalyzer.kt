@@ -15,10 +15,6 @@ class BarcodeAnalyzer(
     private val onBarcodeDetected: (barcode: String) -> Unit,
 ) : ImageAnalysis.Analyzer {
 
-    companion object {
-        const val COOLDOWN_MILLIS = 2000L // 2秒のクールダウン
-    }
-
     private val options = BarcodeScannerOptions.Builder()
         .setBarcodeFormats(
             Barcode.FORMAT_EAN_13, // JANコード (13桁)
@@ -30,23 +26,18 @@ class BarcodeAnalyzer(
         .build()
 
     private val scanner = BarcodeScanning.getClient()
-    private var lastScanTime = 0L
 
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
-        val currentTime = System.currentTimeMillis()
-        // 前回のスキャンからクールダウン時間が経過していない場合は処理を中断
-        if (currentTime - lastScanTime < COOLDOWN_MILLIS) {
-            imageProxy.close()
-            return
-        }
 
         val mediaImage = imageProxy.image ?: return
 
         // 解析する画像のサイズと画面のプレビューサイズから、有効なスキャン領域を計算
         val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-        val imageWidth = if (rotationDegrees == 90 || rotationDegrees == 270) imageProxy.height else imageProxy.width
-        val imageHeight = if (rotationDegrees == 90 || rotationDegrees == 270) imageProxy.width else imageProxy.height
+        val imageWidth =
+            if (rotationDegrees == 90 || rotationDegrees == 270) imageProxy.height else imageProxy.width
+        val imageHeight =
+            if (rotationDegrees == 90 || rotationDegrees == 270) imageProxy.width else imageProxy.height
 
         val viewAspectRatio = viewWidth.toFloat() / viewHeight
         val imageAspectRatio = imageWidth.toFloat() / imageHeight
@@ -73,7 +64,6 @@ class BarcodeAnalyzer(
                     barcode.boundingBox?.let { scanBounds.contains(it) } ?: false
                 }?.rawValue?.let { barcode ->
                     // バーコードを検出したら、最終スキャン時刻を更新
-                    lastScanTime = currentTime
                     onBarcodeDetected(barcode)
                 }
             }

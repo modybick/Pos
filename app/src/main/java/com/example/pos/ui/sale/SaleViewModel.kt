@@ -17,6 +17,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.pos.R
 import com.example.pos.data.DeviceIdManager
 import com.example.pos.data.ProductRepository
+import com.example.pos.data.SettingsRepository
 import com.example.pos.database.Product
 import com.example.pos.database.Sale
 import com.example.pos.database.SaleDao
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -43,11 +45,14 @@ class SaleViewModel @Inject constructor(
     application: Application,
     private val productRepository: ProductRepository,
     private val saleDao: SaleDao,
-    private val deviceIdManager: DeviceIdManager
+    private val deviceIdManager: DeviceIdManager,
+    private val settingsRepository: SettingsRepository
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(SaleUiState())
     val uiState: StateFlow<SaleUiState> = _uiState.asStateFlow()
+
+    private var lastScanTime = 0L
 
     private var soundPool: SoundPool
     private var scanSoundId: Int = 0
@@ -109,6 +114,18 @@ class SaleViewModel @Inject constructor(
 
     fun onBarcodeScanned(barcode: String) {
         viewModelScope.launch {
+            // 現在の時間を取得
+            val currentTime = System.currentTimeMillis()
+            // 最後にスキャンした時間との差を計算
+            val timeSinceLastScan = currentTime - lastScanTime
+            // 設定されたスキャン間隔を取得
+            val scanInterval = settingsRepository.barcodeScanInterval.first()
+
+            // 設定された間隔より短い場合は処理をスキップ
+            if (timeSinceLastScan < scanInterval) {
+                return@launch
+            }
+
             // リポジトリを使ってDBから商品を検索
             val product = productRepository.findProductByBarcode(barcode)
 
@@ -143,6 +160,9 @@ class SaleViewModel @Inject constructor(
                     vibrateError() // エラー時のバイブレーション
                 }
             }
+
+            // スキャン時間を更新
+            lastScanTime = currentTime
         }
     }
 

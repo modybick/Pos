@@ -58,7 +58,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     // Room
     implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx) // Kotlin Coroutinesサポート用
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.datastore.core.android)
+    implementation(libs.androidx.datastore.preferences.core.android) // Kotlin Coroutinesサポート用
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
@@ -89,4 +91,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
 
     implementation(libs.gson)
+
+    implementation(libs.androidx.datastore.preferences)
 }
