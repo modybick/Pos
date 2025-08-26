@@ -8,6 +8,7 @@ import com.example.pos.data.SaleRepository
 import com.example.pos.data.SaleRepositoryImpl
 import com.example.pos.database.AppDatabase
 import com.example.pos.database.ProductDao
+import com.example.pos.database.SaleDao
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -15,7 +16,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
-import com.example.pos.database.SaleDao
 
 @Module
 @InstallIn(SingletonComponent::class) // アプリ全体で共有するインスタンス
@@ -28,8 +28,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             "pos_database.db"
-        ).createFromAsset("prepackaged.db") // 事前DBの利用
-            .build()
+        ).build()
     }
 
     @Provides

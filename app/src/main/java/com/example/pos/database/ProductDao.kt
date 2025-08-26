@@ -38,6 +38,9 @@ interface ProductDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(product: Product)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun bulkInsertProducts(products: List<Product>)
+    
     /**
      * 商品の情報を更新する。
      * @param product 更新する商品オブジェクト

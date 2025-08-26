@@ -1,35 +1,41 @@
 package com.example.pos.ui.sale
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import android.app.Application // Applicationをインポート
+import android.app.Application
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.SoundPool
-import androidx.lifecycle.AndroidViewModel // ViewModelから変更
-import androidx.lifecycle.viewModelScope
-import com.example.pos.R // Rファイルをインポート
-import kotlinx.coroutines.launch
-import com.example.pos.data.ProductRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import com.example.pos.database.Sale
-import com.example.pos.database.SaleDao
-import com.example.pos.database.SaleDetail
-import java.util.Date
-import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.widget.Toast
 import androidx.core.content.edit
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.application
+import androidx.lifecycle.viewModelScope
+import com.example.pos.R
 import com.example.pos.data.DeviceIdManager
+import com.example.pos.data.ProductRepository
 import com.example.pos.database.Product
+import com.example.pos.database.Sale
+import com.example.pos.database.SaleDao
+import com.example.pos.database.SaleDetail
 import com.google.gson.Gson
-import kotlinx.coroutines.flow.SharedFlow
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.util.Date
+import javax.inject.Inject
 
 
 @HiltViewModel
@@ -174,14 +180,14 @@ class SaleViewModel @Inject constructor(
             val details = _uiState.value.cartItems
                 .sortedBy { it.product.barcode }
                 .map { cartItem ->
-                SaleDetail(
-                    saleId = 0, // Dao側で設定されるので仮の値
-                    productBarcode = cartItem.product.barcode,
-                    productName = cartItem.product.name,
-                    price = cartItem.product.price,
-                    quantity = cartItem.quantity
-                )
-            }
+                    SaleDetail(
+                        saleId = 0, // Dao側で設定されるので仮の値
+                        productBarcode = cartItem.product.barcode,
+                        productName = cartItem.product.name,
+                        price = cartItem.product.price,
+                        quantity = cartItem.quantity
+                    )
+                }
             // DBに保存
             saleDao.insertSaleAndDetails(sale, details)
             // カートを空にする
@@ -212,7 +218,12 @@ class SaleViewModel @Inject constructor(
             // 既存のカートをクリアして、新しいアイテムを追加
             val newCartItems = details.map {
                 CartItem(
-                    product = Product(it.productBarcode, it.productName, it.price, null), // 仮のProduct
+                    product = Product(
+                        it.productBarcode,
+                        it.productName,
+                        it.price,
+                        null
+                    ), // 仮のProduct
                     quantity = it.quantity
                 )
             }
@@ -227,6 +238,74 @@ class SaleViewModel @Inject constructor(
             prefs.edit {
                 remove("reproduce_cart_details")
             }
+        }
+    }
+
+    /**
+     * CSVファイルから商品データをインポートする
+     * @param uri 選択されたCSVファイルのURI
+     */
+    fun importProductsFromCsv(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                // I/O処理をバックグラウンドスレッドで実行
+                withContext(Dispatchers.IO) {
+                    val contentResolver = getApplication<Application>().contentResolver
+                    val inputStream = contentResolver.openInputStream(uri)
+                    val reader = BufferedReader(InputStreamReader(inputStream))
+
+                    val importedProducts = reader.useLines { lines ->
+                        // ヘッダー行をスキップし、各行をProductに変換
+                        lines.drop(1).mapNotNull { line ->
+                            parseCsvLineToProduct(line)
+                        }.toList()
+                    }
+
+                    // リポジトリを介してDBに保存（既存データは上書き）
+                    productRepository.bulkInsertProducts(importedProducts)
+
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            getApplication(),
+                            "${importedProducts.size} 件の商品をインポートしました",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        getApplication(),
+                        "インポートに失敗しました: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    /**
+     * CSVの1行をProductオブジェクトに変換する
+     * 想定フォーマット: "barcode","name","price","tag"
+     */
+    private fun parseCsvLineToProduct(line: String): Product? {
+        val parts = line.split(Regex(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"))
+        if (parts.size < 4) return null
+
+        return try {
+            val barcode = parts[0].trim().removeSurrounding("\"")
+            val name = parts[1].trim().removeSurrounding("\"")
+            val price = parts[2].trim().removeSurrounding("\"").toInt()
+            val tag = parts[3].trim().removeSurrounding("\"").takeIf { it.isNotEmpty() }
+
+            Product(
+                barcode = barcode,
+                name = name,
+                price = price,
+                tag = tag
+            )
+        } catch (e: NumberFormatException) {
+            null // 価格が数値でない場合はスキップ
         }
     }
 }

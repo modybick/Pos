@@ -10,6 +10,7 @@ interface ProductRepository {
     suspend fun findProductByBarcode(barcode: String): Product?
     suspend fun insertProduct(product: Product)
     suspend fun findProductsByBarcodes(barcodes: List<String>): List<Product>
+    suspend fun bulkInsertProducts(products: List<Product>)
 }
 
 // 設計図の具体的な実装。DAOを使ってDBを操作する
@@ -31,5 +32,9 @@ class ProductRepositoryImpl @Inject constructor(
 
     override suspend fun findProductsByBarcodes(barcodes: List<String>): List<Product> {
         return productDao.findByBarcodes(barcodes)
+    }
+
+    override suspend fun bulkInsertProducts(products: List<Product>) {
+        productDao.bulkInsertProducts(products)
     }
 }

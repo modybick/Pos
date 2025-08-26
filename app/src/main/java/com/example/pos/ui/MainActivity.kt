@@ -1,10 +1,16 @@
 package com.example.pos.ui
 
+// 👇 アニメーション用のimportを追加
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.IntOffset
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,14 +20,9 @@ import com.example.pos.ui.history.HistoryScreen
 import com.example.pos.ui.sale.CheckoutScreen
 import com.example.pos.ui.sale.SaleScreen
 import com.example.pos.ui.sale.SaleViewModel
+import com.example.pos.ui.settings.SettingsScreen
 import com.example.pos.ui.theme.PosTheme
 import dagger.hilt.android.AndroidEntryPoint
-// 👇 アニメーション用のimportを追加
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.unit.IntOffset
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -34,10 +35,14 @@ class MainActivity : ComponentActivity() {
 
                 // 👇 ここでアニメーションの定義をまとめて作成する
                 val animationSpec = tween<IntOffset>(300)
-                val enterTransition = slideInHorizontally(initialOffsetX = { it }, animationSpec = animationSpec)
-                val exitTransition = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = animationSpec)
-                val popEnterTransition = slideInHorizontally(initialOffsetX = { -it }, animationSpec = animationSpec)
-                val popExitTransition = slideOutHorizontally(targetOffsetX = { it }, animationSpec = animationSpec)
+                val enterTransition =
+                    slideInHorizontally(initialOffsetX = { it }, animationSpec = animationSpec)
+                val exitTransition =
+                    slideOutHorizontally(targetOffsetX = { -it }, animationSpec = animationSpec)
+                val popEnterTransition =
+                    slideInHorizontally(initialOffsetX = { -it }, animationSpec = animationSpec)
+                val popExitTransition =
+                    slideOutHorizontally(targetOffsetX = { it }, animationSpec = animationSpec)
 
                 NavHost(navController = navController, startDestination = "sales_flow") {
                     navigation(
@@ -51,7 +56,7 @@ class MainActivity : ComponentActivity() {
                             exitTransition = { exitTransition },
                             popEnterTransition = { popEnterTransition },
                             popExitTransition = { popExitTransition }
-                            ) { navBackStackEntry ->
+                        ) { navBackStackEntry ->
                             // 親グラフに紐付いたViewModelを取得
                             val parentEntry = remember(navBackStackEntry) {
                                 navController.getBackStackEntry("sales_flow")
@@ -66,7 +71,8 @@ class MainActivity : ComponentActivity() {
                             SaleScreen(
                                 saleViewModel = saleViewModel, // 共有ViewModelを渡す
                                 onNavigateToCheckout = { navController.navigate("checkout") },
-                                onNavigateToHistory = { navController.navigate("history") }
+                                onNavigateToHistory = { navController.navigate("history") },
+                                onNavigateToSettings = { navController.navigate("settings") }
                             )
                         }
                         // 会計画面
@@ -96,6 +102,17 @@ class MainActivity : ComponentActivity() {
                             popExitTransition = { popExitTransition }
                         ) {
                             HistoryScreen(
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable(
+                            "settings",
+                            enterTransition = { enterTransition },
+                            exitTransition = { exitTransition },
+                            popEnterTransition = { popEnterTransition },
+                            popExitTransition = { popExitTransition }
+                        ) {
+                            SettingsScreen(
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }

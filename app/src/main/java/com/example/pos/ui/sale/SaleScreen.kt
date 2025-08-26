@@ -6,34 +6,63 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview as PV
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview as Preview
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import java.util.concurrent.Executors
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.ui.res.painterResource
 import com.example.pos.R
-import com.example.pos.utils.toCurrencyFormat
 import com.example.pos.ui.products.ProductListScreen
-import androidx.compose.foundation.lazy.rememberLazyListState
+import com.example.pos.utils.toCurrencyFormat
+import java.util.concurrent.Executors
+import androidx.camera.core.Preview as PV
 
 /**
  * メインのレジ画面
@@ -45,6 +74,7 @@ fun SaleScreen(
     saleViewModel: SaleViewModel,
     onNavigateToHistory: () -> Unit,
     onNavigateToCheckout: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
     val uiState by saleViewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -136,9 +166,11 @@ fun SaleScreen(
         }
     }
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .safeDrawingPadding()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .safeDrawingPadding()
+    ) {
         // --- 上部：カメラプレビュー領域 ---
         Box(
             modifier = Modifier
@@ -151,7 +183,9 @@ fun SaleScreen(
                     onBarcodeScanned = saleViewModel::onBarcodeScanned
                 )
                 Row(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // バイブレーションON/OFFボタン
@@ -206,7 +240,11 @@ fun SaleScreen(
                 .fillMaxWidth(),
             // ...
         ) {
-            Column(modifier = Modifier.padding(16.dp).fillMaxHeight()) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxHeight()
+            ) {
                 CartList(
                     items = uiState.cartItems,
                     onQuantityChanged = saleViewModel::onQuantityChanged,
@@ -217,38 +255,41 @@ fun SaleScreen(
                 TotalAmountDisplay(totalAmount = uiState.totalAmount)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // ▼▼▼ ここからボタンのレイアウトを変更 ▼▼▼
-
-                // メインの「会計する」ボタンを一番上に配置
-                Button(
-                    onClick = onNavigateToCheckout,
-                    enabled = uiState.cartItems.isNotEmpty(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                ) {
-                    Text("会計する")
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // 「クリア」ボタンと「売上履歴」ボタンを横並びに配置
+                // ボタン１行目
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    Button(
+                        onClick = onNavigateToCheckout,
+                        enabled = uiState.cartItems.isNotEmpty(),
+                        modifier = Modifier
+                            .weight(7f)
+                            .height(48.dp)
+                    ) {
+                        Text("会計する")
+                    }
                     // クリアボタン（旧商品管理ボタンの位置）
                     OutlinedButton(
                         onClick = { showClearConfirmDialog = true },
                         enabled = uiState.cartItems.isNotEmpty(),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(3f)
+                            .height(48.dp)
                     ) {
                         Text("クリア")
                     }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
 
+                // ボタン２行目
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     OutlinedButton(
                         onClick = { showProductSheet = true }, // 👈 ボトムシートを表示
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1.5f)
                     ) {
                         Text("商品一覧")
                     }
@@ -256,9 +297,17 @@ fun SaleScreen(
                     // 売上履歴ボタン
                     OutlinedButton(
                         onClick = onNavigateToHistory,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1.5f)
                     ) {
                         Text("売上履歴")
+                    }
+
+                    // 設定ボタン
+                    OutlinedButton(
+                        onClick = onNavigateToSettings,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("設定")
                     }
                 }
             }
@@ -341,7 +390,8 @@ private fun CameraPreview(
                     camera.value = cameraProvider.bindToLifecycle(
                         lifecycleOwner, cameraSelector, preview, imageAnalysis
                     )
-                } catch (e: Exception) { /* ... */ }
+                } catch (e: Exception) { /* ... */
+                }
             }
         },
         modifier = Modifier.fillMaxSize()
@@ -420,7 +470,12 @@ private fun TotalAmountDisplay(totalAmount: Int) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text("合計", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Text("${totalAmount.toCurrencyFormat()}円", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Text(
+            "${totalAmount.toCurrencyFormat()}円",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 
