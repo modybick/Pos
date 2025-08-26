@@ -40,7 +40,7 @@ interface ProductDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun bulkInsertProducts(products: List<Product>)
-    
+
     /**
      * 商品の情報を更新する。
      * @param product 更新する商品オブジェクト
@@ -58,4 +58,7 @@ interface ProductDao {
     // 複数のバーコードに一致する商品のリストを取得するクエリ
     @Query("SELECT * FROM products WHERE barcode IN (:barcodes)")
     suspend fun findByBarcodes(barcodes: List<String>): List<Product>
+
+    @Query("DELETE FROM products")
+    suspend fun clearAllProducts()
 }

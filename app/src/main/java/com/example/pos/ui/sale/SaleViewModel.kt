@@ -297,7 +297,8 @@ class SaleViewModel @Inject constructor(
                         }.toList()
                     }
 
-                    // リポジトリを介してDBに保存（既存データは上書き）
+                    // リポジトリを介してDBに保存
+                    productRepository.clearAllProducts()
                     productRepository.bulkInsertProducts(importedProducts)
 
                     withContext(Dispatchers.Main) {
