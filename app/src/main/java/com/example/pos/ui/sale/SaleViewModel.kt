@@ -112,18 +112,28 @@ class SaleViewModel @Inject constructor(
         return items.sumOf { it.product.price * it.quantity }
     }
 
-    fun onBarcodeScanned(barcode: String) {
+    /**
+     * バーコードを処理する
+     * @param barcode 処理するバーコード文字列
+     * @param isFromScanner バーコードリーダーからのスキャンか、手動入力か
+     */
+    fun onBarcodeScanned(barcode: String, isFromScanner: Boolean = true) {
         viewModelScope.launch {
-            // 現在の時間を取得
-            val currentTime = System.currentTimeMillis()
-            // 最後にスキャンした時間との差を計算
-            val timeSinceLastScan = currentTime - lastScanTime
-            // 設定されたスキャン間隔を取得
-            val scanInterval = settingsRepository.barcodeScanInterval.first()
+            if (isFromScanner) {
+                // 現在の時間を取得
+                val currentTime = System.currentTimeMillis()
+                // 最後にスキャンした時間との差を計算
+                val timeSinceLastScan = currentTime - lastScanTime
+                // 設定されたスキャン間隔を取得
+                val scanInterval = settingsRepository.barcodeScanInterval.first()
 
-            // 設定された間隔より短い場合は処理をスキップ
-            if (timeSinceLastScan < scanInterval) {
-                return@launch
+                // 設定された間隔より短い場合は処理をスキップ
+                if (timeSinceLastScan < scanInterval) {
+                    return@launch
+                }
+
+                // スキャン時間を更新
+                lastScanTime = currentTime
             }
 
             // リポジトリを使ってDBから商品を検索
@@ -160,9 +170,6 @@ class SaleViewModel @Inject constructor(
                     vibrateError() // エラー時のバイブレーション
                 }
             }
-
-            // スキャン時間を更新
-            lastScanTime = currentTime
         }
     }
 

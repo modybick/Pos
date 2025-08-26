@@ -324,7 +324,7 @@ fun SaleScreen(
             // ボトムシートの中身としてProductListScreenを呼び出す
             ProductListScreen(
                 onProductSelected = { barcode ->
-                    saleViewModel.onBarcodeScanned(barcode)
+                    saleViewModel.onBarcodeScanned(barcode, false)
                     // 連続追加できるよう、ここではシートを閉じない
                 }
             )
