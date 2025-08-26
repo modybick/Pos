@@ -138,7 +138,10 @@ class SaleViewModel @Inject constructor(
             } else {
                 // --- 商品が見つからなかった場合 ---
                 soundPool.play(errorSoundId, 1f, 1f, 0, 0, 1f)
-                // TODO: ユーザーに「商品が見つかりません」と通知する（Toastなど）
+
+                if (isVibrationEnabled) {
+                    vibrateError() // エラー時のバイブレーション
+                }
             }
         }
     }
@@ -155,7 +158,13 @@ class SaleViewModel @Inject constructor(
     }
 
     private fun vibrateSuccess() {
-        vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
+        val pattern = longArrayOf(0, 100, 0, 0)
+        vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
+    }
+
+    private fun vibrateError() {
+        val pattern = longArrayOf(0, 100, 50, 100, 50, 100)
+        vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
     }
 
     fun finalizeSale(tenderedAmount: Int, paymentMethod: String) {
@@ -296,13 +305,13 @@ class SaleViewModel @Inject constructor(
             val barcode = parts[0].trim().removeSurrounding("\"")
             val name = parts[1].trim().removeSurrounding("\"")
             val price = parts[2].trim().removeSurrounding("\"").toInt()
-            val tag = parts[3].trim().removeSurrounding("\"").takeIf { it.isNotEmpty() }
+            val category = parts[3].trim().removeSurrounding("\"").takeIf { it.isNotEmpty() }
 
             Product(
                 barcode = barcode,
                 name = name,
                 price = price,
-                tag = tag
+                category = category
             )
         } catch (e: NumberFormatException) {
             null // 価格が数値でない場合はスキップ

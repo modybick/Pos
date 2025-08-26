@@ -1,11 +1,7 @@
-@file:Suppress("DEPRECATION")
-
 package com.example.pos.ui.sale
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -196,22 +192,6 @@ fun SaleScreen(
                     IconButton(
                         onClick = {
                             isVibrationOn = !isVibrationOn
-                            // バイブレーションをONにしたとき、触覚フィードバックの値をチェック
-                            if (isVibrationOn) {
-                                val hapticFeedbackEnabled = Settings.System.getInt(
-                                    context.contentResolver,
-                                    Settings.System.HAPTIC_FEEDBACK_ENABLED,
-                                    0
-                                ) != 0
-
-                                if (!hapticFeedbackEnabled) {
-                                    Toast.makeText(
-                                        context,
-                                        "端末の触覚フィードバックがOFFになっています。",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                            }
                         },
                         colors = IconButtonDefaults.iconButtonColors(
                             containerColor = if (isVibrationOn) MaterialTheme.colorScheme.primary

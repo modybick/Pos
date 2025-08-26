@@ -2,23 +2,26 @@ package com.example.pos.ui.history
 
 import android.app.Application
 import android.content.Context
-import androidx.lifecycle.viewModelScope
-import com.example.pos.data.SaleRepository
-import com.example.pos.database.Sale
-import com.example.pos.database.SaleDetail
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 import android.icu.text.SimpleDateFormat
 import android.net.Uri
 import android.widget.Toast
 import androidx.core.content.edit
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.pos.data.ProductRepository
+import com.example.pos.data.SaleRepository
+import com.example.pos.database.Sale
+import com.example.pos.database.SaleDetail
+import com.google.gson.Gson
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.Locale
-import com.example.pos.data.ProductRepository
-import androidx.lifecycle.AndroidViewModel
-import com.google.gson.Gson
+import javax.inject.Inject
 
 data class HistoryUiState(
     val sales: List<Sale> = emptyList(),
@@ -43,7 +46,13 @@ class HistoryViewModel @Inject constructor(
         viewModelScope.launch {
             saleRepository.getAllSalesStream().collect { sales ->
                 val total = sales.filter { !it.isCancelled }.sumOf { it.totalAmount }
-                _uiState.update { it.copy(sales = sales, totalSalesAmount = total, isLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        sales = sales,
+                        totalSalesAmount = total,
+                        isLoading = false
+                    )
+                }
             }
         }
     }
@@ -80,13 +89,18 @@ class HistoryViewModel @Inject constructor(
             }
         }
     }
+
     fun exportSalesToCsv(uri: Uri) {
         viewModelScope.launch {
             try {
                 // 1. 売上と明細の全データを取得
                 val salesWithDetails = saleRepository.getSalesWithDetails()
                 if (salesWithDetails.isEmpty()) {
-                    Toast.makeText(application, "エクスポートするデータがありません", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        application,
+                        "エクスポートするデータがありません",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     return@launch
                 }
 
@@ -125,12 +139,12 @@ class HistoryViewModel @Inject constructor(
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.JAPAN)
         val stringBuilder = StringBuilder()
         // ヘッダー行
-        stringBuilder.append("端末ID,会計ID,会計日時,決済方法,合計金額,預かり金額,お釣り,取り消し,商品バーコード,商品名,tag,販売単価,数量\n")
+        stringBuilder.append("端末ID,会計ID,会計日時,決済方法,合計金額,預かり金額,お釣り,取り消し,商品バーコード,商品名,カテゴリー,販売単価,数量\n")
 
         // データ行
         sales.forEach { saleWithDetails ->
             saleWithDetails.details.forEach { detail ->
-                val tag = productsMap[detail.productBarcode]?.tag ?: ""
+                val category = productsMap[detail.productBarcode]?.category ?: ""
                 stringBuilder.append(
                     "${saleWithDetails.sale.terminalId}," +
                             "${saleWithDetails.sale.id}," +
@@ -142,7 +156,7 @@ class HistoryViewModel @Inject constructor(
                             "${saleWithDetails.sale.isCancelled}," +
                             "${detail.productBarcode}," +
                             "\"${detail.productName}\"," + // 商品名にカンマが含まれる可能性を考慮
-                            "\"$tag\"," +
+                            "\"$category\"," +
                             "${detail.price}," +
                             "${detail.quantity}," + "\n"
                 )
