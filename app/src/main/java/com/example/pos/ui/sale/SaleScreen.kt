@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.pos.ui.sale
 
 import android.Manifest
@@ -88,23 +90,6 @@ fun SaleScreen(
     var isVibrationOn by remember { mutableStateOf(true) }
     LaunchedEffect(isVibrationOn) {
         saleViewModel.setVibrationEnabled(isVibrationOn)
-
-        // バイブレーションをONにしたとき、触覚フィードバックの値をチェック
-        if (isVibrationOn) {
-            val hapticFeedbackEnabled = Settings.System.getInt(
-                context.contentResolver,
-                Settings.System.HAPTIC_FEEDBACK_ENABLED,
-                0
-            ) != 0
-
-            if (!hapticFeedbackEnabled) {
-                Toast.makeText(
-                    context,
-                    "端末の触覚フィードバックがOFFになっています。",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
     }
 
     // 👇 ボトムシートの表示状態を管理
@@ -209,7 +194,25 @@ fun SaleScreen(
                 ) {
                     // バイブレーションON/OFFボタン
                     IconButton(
-                        onClick = { isVibrationOn = !isVibrationOn },
+                        onClick = {
+                            isVibrationOn = !isVibrationOn
+                            // バイブレーションをONにしたとき、触覚フィードバックの値をチェック
+                            if (isVibrationOn) {
+                                val hapticFeedbackEnabled = Settings.System.getInt(
+                                    context.contentResolver,
+                                    Settings.System.HAPTIC_FEEDBACK_ENABLED,
+                                    0
+                                ) != 0
+
+                                if (!hapticFeedbackEnabled) {
+                                    Toast.makeText(
+                                        context,
+                                        "端末の触覚フィードバックがOFFになっています。",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        },
                         colors = IconButtonDefaults.iconButtonColors(
                             containerColor = if (isVibrationOn) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.surfaceVariant,
